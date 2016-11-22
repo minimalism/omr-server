@@ -1,2 +1,2 @@
 # omr-server
-OpenMultiplayerRobot
+Work in progress.
