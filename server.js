@@ -1,7 +1,7 @@
 'use strict';
 
 const Hapi = require('hapi');
-const Routes = require('./routes');
+const Routes = require('./backend/routes');
 
 const server = new Hapi.Server();
 
@@ -11,11 +11,14 @@ server.connection({
 });
 server.route(Routes.endpoints);
 
-// Start the server
 server.start((err) => {
-
     if (err) {
         throw err;
     }
     console.log('Server running at:', server.info.uri);
+
+    var firebase = require('firebase');
+    var firebaseConfig = require('./backend/config/firebase.js');
+
+    firebase.initializeApp(firebaseConfig);
 });

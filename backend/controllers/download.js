@@ -1,5 +1,5 @@
 var fs = require('fs'),
-    Config = require('./config');
+    Config = require('../config/config');
 
 exports.getFile = {
     handler: function(request, reply) {

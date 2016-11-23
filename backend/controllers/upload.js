@@ -1,6 +1,6 @@
 var fs = require('fs'),
     multiparty = require('multiparty'),
-    Config = require('./config');
+    Config = require('../config/config');
 
 exports.postFile = {
     payload: {
