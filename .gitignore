@@ -2,4 +2,4 @@ logs
 saves
 npm-debug.log*
 node_modules
-lib/config/firebase.js
+backend/config/firebase.js
