@@ -1,5 +1,7 @@
 var fs = require('fs'),
     multiparty = require('multiparty'),
+    firebase = require('firebase'),
+    _ = require('lodash'),
     Config = require('../config/config');
 
 exports.postFile = {
@@ -12,37 +14,84 @@ exports.postFile = {
         var form = new multiparty.Form();
         form.parse(request.payload, (err, fields, files) => {
             if (err) return reply(err);
-            else {
-                fs.readFile(files.file[0].path, (err, data) => {
-                    fs.stat(Config.savesDir, (err, stats) => {
+            
+            fs.readFile(files.file[0].path, (err, data) => {
+                fs.stat(Config.savesDir, (err, stats) => {
 
-                        // Handle missing directory, fail on other errors
-                        if (err){
-                            if (err.code == 'ENOENT') fs.mkdirSync(Config.savesDir);
-                            else return reply(err);
+                    // Handle missing directory, fail on other errors
+                    if (err){
+                        if (err.code == 'ENOENT') fs.mkdirSync(Config.savesDir);
+                        else return reply(err).code(500);
+                    }
+
+                    const gameId = fields.gameId[0];
+                    const participantId = fields.participantId[0];
+
+                    const fName = files.file[0].originalFilename,
+                          ext = fName.substr(fName.lastIndexOf('.') + 1);
+
+                    if (ext != Config.allowedExt) return reply('Invalid savefile').code(500);  // Invalid file extension
+
+                    // Verify that current user had latest turn: 
+                    firebase.database().ref().child(`/games/${gameId}`).once('value').then(snapshot => {
+                        const gameData = snapshot.val();
+
+                        // Create a new turn
+                        let update = {};
+                        let turnNumber = 0;
+
+                        // Sort participants by turn order
+                        const participants = _(gameData.participants)
+                            .map((value, participantId) => { 
+                                return { participantId : participantId, ordinal : value.ordinal, userId : value.userId } 
+                            })
+                            .orderBy('ordinal').value();
+
+                        let previousParticipantId = participants[0].participantId;
+                        if (gameData.latestTurn == undefined){
+                            // this is the first turn
+                            if (gameData.status != 0) return reply(`Expected status 0, found ${gameData.status}`).code(500);
+                            update[`/games/${gameId}/status`] = 1;
+                        }
+                        else{
+                            if (gameData.status != 1) return reply(`Expected status 1, found ${gameData.status}`).code(500);
+                            turnNumber = gameData.latestTurn + 1;
+                            previousParticipantId = gameData.nextTurner; 
                         }
 
-                        var fName = files.file[0].originalFilename,
-                        dest = Config.savesDir + fName,
-                        ext = fName.substr(fName.lastIndexOf('.') + 1);
+                        if (participantId != previousParticipantId) return reply(`It's not your turn!`).code(500); 
 
-                        if (ext == Config.allowedExt){
-                            fs.writeFile(dest, data, (err) => {
-                                if (err) return reply(err);
-                                else {
-                                    var link = request.headers.origin
-                                        + Config.downloadEndpoint + "/"
-                                        + fName.substr(0, fName.lastIndexOf('.'));
-                                    return reply('<p>Thanks! Provide this download link for the next player:</p><pre>'
-                                        + link 
-                                        + '</pre>');
-                                };
+                        const previousTurnerIndex = Math.max(0, _.findIndex(participants, ['participantId', gameData.nextTurner]));
+                        const nextTurner = participants[(previousTurnerIndex + 1) % participants.length];
+
+                        // The id with which clients will be able to look up the save file
+                        const targetFilename = `${gameId}-${turnNumber}`;
+
+                        // Everything checks out, write save file to disk
+                        fs.writeFile(`${Config.savesDir}${targetFilename}.${Config.allowedExt}`, data, (err) => {
+                            if (err) return reply(err).code(500);
+
+                            // Commit turn to firebase
+                            const turnData = {
+                                participantId: participantId,
+                                fileId: `${targetFilename}`,
+                                submitted: Date.now()
+                            };
+
+                            update[`/games/${gameId}/latestTurn`] = turnNumber;
+                            update[`/games/${gameId}/nextTurner`] = nextTurner.participantId;
+                            update[`/turns/${gameId}/${turnNumber}`] = turnData;
+
+                            firebase.database().ref().update(update).then(() => {
+                                return reply().code(200);
+                            }, (fail) => {
+                                return reply(fail.message).code(500);
                             });
-                        }
-                        else return reply('Invalid savefile');
+                        });
                     });
                 });
-            }
+            });
+            
         });
     }
 }

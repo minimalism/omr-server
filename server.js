@@ -20,5 +20,12 @@ server.start((err) => {
     var firebase = require('firebase');
     var firebaseConfig = require('./backend/config/firebase.js');
 
-    firebase.initializeApp(firebaseConfig);
+    firebase.initializeApp(firebaseConfig.api);
+
+    const { email, password } = firebaseConfig.credentials;
+
+    firebase.auth().signInWithEmailAndPassword(email, password).catch((e) => {
+        console.error("Could not verify server credentials.");
+        server.stop();
+    });
 });
