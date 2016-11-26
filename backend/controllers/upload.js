@@ -38,7 +38,9 @@ exports.postFile = {
 
                         // Create a new turn
                         let update = {};
-                        let turnNumber = 0;
+
+                        // Game status must be "Started"
+                        if (gameData.status != 1) return reply(`Expected status 1, found ${gameData.status}`).code(500);
 
                         // Sort participants by turn order
                         const participants = _(gameData.participants)
@@ -48,13 +50,8 @@ exports.postFile = {
                             .orderBy('ordinal').value();
 
                         let previousParticipantId = participants[0].participantId;
-                        if (gameData.latestTurn == undefined){
-                            // this is the first turn
-                            if (gameData.status != 0) return reply(`Expected status 0, found ${gameData.status}`).code(500);
-                            update[`/games/${gameId}/status`] = 1;
-                        }
-                        else{
-                            if (gameData.status != 1) return reply(`Expected status 1, found ${gameData.status}`).code(500);
+                        let turnNumber = 0;
+                        if (gameData.latestTurn != undefined){
                             turnNumber = gameData.latestTurn + 1;
                             previousParticipantId = gameData.nextTurner; 
                         }
@@ -95,14 +92,3 @@ exports.postFile = {
         });
     }
 }
-
-exports.displayForm = {
-    handler: function(request, reply) {
-        reply(
-            '<form action="/upload" method="post" enctype="multipart/form-data">' +
-            '<input type="file" name="file">' +
-            '<input type="submit" value="Upload">' +
-            '</form>'
-        );
-    }
-};

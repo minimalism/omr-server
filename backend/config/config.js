@@ -4,7 +4,4 @@ module.exports = {
 
   downloadEndpoint: '/get',
   uploadEndpoint: '/upload',
-  loginEndpoint: '/login',
-  gamesEndpoint: '/games',
-  registerEndpoint: '/register'
 }
