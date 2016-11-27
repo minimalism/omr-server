@@ -2,6 +2,8 @@ var fs = require('fs'),
     multiparty = require('multiparty'),
     firebase = require('firebase'),
     _ = require('lodash'),
+    civ6 = require('civ6-save-parser'),
+    crypto = require('crypto'),
     Config = require('../config/config');
 
 exports.postFile = {
@@ -59,10 +61,23 @@ exports.postFile = {
                         if (participantId != previousParticipantId) return reply(`It's not your turn!`).code(500); 
 
                         const previousTurnerIndex = Math.max(0, _.findIndex(participants, ['participantId', gameData.nextTurner]));
-                        const nextTurner = participants[(previousTurnerIndex + 1) % participants.length];
+                        const nextTurnerIndex = (previousTurnerIndex + 1) % participants.length;
+                        const nextTurner = participants[nextTurnerIndex];
 
                         // The id with which clients will be able to look up the save file
                         const targetFilename = `${gameId}-${turnNumber}`;
+
+                        if (Config.scramblePasswords){
+                            try {
+                                const parsed = civ6.parse(data);
+                                data = civ6.modifyCiv(data, parsed.CIVS[nextTurnerIndex], { PLAYER_PASSWORD: "" });
+                                const randomString = crypto.randomBytes(8).toString('hex');
+                                data = civ6.modifyCiv(data, parsed.CIVS[previousTurnerIndex], { PLAYER_PASSWORD: randomString });
+                            }
+                            catch(err) {
+                                console.error(`Unable to modify player password: ${err}`);
+                            }
+                        }
 
                         // Everything checks out, write save file to disk
                         fs.writeFile(`${Config.savesDir}${targetFilename}.${Config.allowedExt}`, data, (err) => {

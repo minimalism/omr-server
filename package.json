@@ -13,6 +13,7 @@
   "author": "Andreas Carlson",
   "license": "ISC",
   "dependencies": {
+    "civ6-save-parser": "0.0.9",
     "firebase": "^3.6.1",
     "hapi": "^15.2.0",
     "lodash": "^4.17.2",

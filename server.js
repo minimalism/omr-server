@@ -17,8 +17,8 @@ server.start((err) => {
     }
     console.log('Server running at:', server.info.uri);
 
-    var firebase = require('firebase');
-    var firebaseConfig = require('./backend/config/firebase.js');
+    const firebase = require('firebase');
+    const firebaseConfig = require('./backend/config/firebase.js');
 
     firebase.initializeApp(firebaseConfig.api);
 
