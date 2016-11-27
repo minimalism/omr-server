@@ -2,7 +2,7 @@ var fs = require('fs'),
     multiparty = require('multiparty'),
     firebase = require('firebase'),
     _ = require('lodash'),
-    civ6 = require('civ6-save-parser'),
+    //civ6 = require('civ6-save-parser'),
     crypto = require('crypto'),
     Config = require('../config/config');
 
@@ -67,7 +67,7 @@ exports.postFile = {
                         // The id with which clients will be able to look up the save file
                         const targetFilename = `${gameId}-${turnNumber}`;
 
-                        if (Config.scramblePasswords){
+                        /*if (Config.scramblePasswords){
                             try {
                                 const parsed = civ6.parse(data);
                                 data = civ6.modifyCiv(data, parsed.CIVS[nextTurnerIndex], { PLAYER_PASSWORD: "" });
@@ -77,7 +77,7 @@ exports.postFile = {
                             catch(err) {
                                 console.error(`Unable to modify player password: ${err}`);
                             }
-                        }
+                        }*/
 
                         // Everything checks out, write save file to disk
                         fs.writeFile(`${Config.savesDir}${targetFilename}.${Config.allowedExt}`, data, (err) => {
